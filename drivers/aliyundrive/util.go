@@ -82,7 +82,11 @@ func (d *AliDrive) refreshToken() error {
 }
 
 func (d *AliDrive) request(url, method string, callback base.ReqCallback, resp interface{}) ([]byte, error, RespErr) {
-	req := base.RestyClient.R()
+	return d.requestWithClient(base.RestyClient, url, method, callback, resp)
+}
+
+func (d *AliDrive) requestWithClient(client *resty.Client, url, method string, callback base.ReqCallback, resp interface{}) ([]byte, error, RespErr) {
+	req := client.R()
 	state, ok := global.Load(d.UserID)
 	if !ok {
 		if url == "https://api.alipan.com/v2/user/get" {
@@ -130,7 +134,7 @@ func (d *AliDrive) request(url, method string, callback base.ReqCallback, resp i
 		default:
 			return nil, errors.New(e.Message), e
 		}
-		return d.request(url, method, callback, resp)
+		return d.requestWithClient(client, url, method, callback, resp)
 	} else if res.IsError() {
 		return nil, errors.New("bad status code " + res.Status()), e
 	}

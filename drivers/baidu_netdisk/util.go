@@ -24,14 +24,18 @@ import (
 // do others that not defined in Driver interface
 
 func (d *BaiduNetdisk) refreshToken() error {
-	err := d._refreshToken()
+	return d.refreshTokenWithContext(context.Background())
+}
+
+func (d *BaiduNetdisk) refreshTokenWithContext(ctx context.Context) error {
+	err := d.refreshTokenRequest(ctx)
 	if err != nil && errors.Is(err, errs.EmptyToken) {
-		err = d._refreshToken()
+		err = d.refreshTokenRequest(ctx)
 	}
 	return err
 }
 
-func (d *BaiduNetdisk) _refreshToken() error {
+func (d *BaiduNetdisk) refreshTokenRequest(ctx context.Context) error {
 	// 使用在线API刷新Token，无需ClientID和ClientSecret
 	if d.UseOnlineAPI && len(d.APIAddress) > 0 {
 		u := d.APIAddress
@@ -41,6 +45,7 @@ func (d *BaiduNetdisk) _refreshToken() error {
 			ErrorMessage string `json:"text"`
 		}
 		_, err := base.RestyClient.R().
+			SetContext(ctx).
 			SetResult(&resp).
 			SetQueryParams(map[string]string{
 				"refresh_ui": d.RefreshToken,
@@ -71,6 +76,7 @@ func (d *BaiduNetdisk) _refreshToken() error {
 	var resp base.TokenResp
 	var e TokenErrResp
 	_, err := base.RestyClient.R().
+		SetContext(ctx).
 		SetResult(&resp).
 		SetError(&e).
 		SetQueryParams(map[string]string{

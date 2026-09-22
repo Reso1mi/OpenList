@@ -55,6 +55,7 @@ type FsListResp struct {
 	WriteContentBypass bool      `json:"write_content_bypass"`
 	Provider           string    `json:"provider"`
 	DirectUploadTools  []string  `json:"direct_upload_tools,omitempty"`
+	CanTransfer        bool      `json:"can_transfer"`
 }
 
 func FsListSplit(c *gin.Context) {
@@ -109,9 +110,14 @@ func FsList(c *gin.Context, req *ListReq, user *model.User) {
 	total, objs := pagination(objs, &req.PageReq)
 	provider := "unknown"
 	var directUploadTools []string
+	canTransfer := false
 	if canWriteContentAtPath {
-		if storage, err := fs.GetStorage(reqPath, &fs.GetStoragesArgs{}); err == nil {
+		if storage, actualPath, err := op.GetStorageAndActualPath(reqPath); err == nil {
 			directUploadTools = op.GetDirectUploadTools(storage)
+			if op.CanTransfer(storage, actualPath) {
+				dir, err := op.Get(c.Request.Context(), storage, actualPath)
+				canTransfer = err == nil && dir.IsDir() && !model.ObjHasMask(dir, model.NoWrite)
+			}
 		}
 	}
 	common.SuccessResp(c, FsListResp{
@@ -123,6 +129,7 @@ func FsList(c *gin.Context, req *ListReq, user *model.User) {
 		WriteContentBypass: common.CanWriteContentBypassUserPerms(meta, reqPath),
 		Provider:           provider,
 		DirectUploadTools:  directUploadTools,
+		CanTransfer:        canTransfer,
 	})
 }
 

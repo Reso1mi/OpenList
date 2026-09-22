@@ -25,8 +25,12 @@ import (
 // do others that not defined in Driver interface
 
 func (d *QuarkOrUC) request(pathname string, method string, callback base.ReqCallback, resp interface{}) ([]byte, error) {
+	return d.requestWithClient(base.RestyClient, pathname, method, callback, resp)
+}
+
+func (d *QuarkOrUC) requestWithClient(client *resty.Client, pathname string, method string, callback base.ReqCallback, resp interface{}) ([]byte, error) {
 	u := d.conf.api + pathname
-	req := base.RestyClient.R()
+	req := client.R()
 	req.SetHeaders(map[string]string{
 		"Cookie":  d.Cookie,
 		"Accept":  "application/json, text/plain, */*",
